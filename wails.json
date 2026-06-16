@@ -1,0 +1,19 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "mino",
+  "outputfilename": "mino",
+  "frontend:install": "npm install",
+  "frontend:build": "npm run build",
+  "frontend:dev:watcher": "npm run dev",
+  "frontend:dev:serverUrl": "auto",
+  "author": {
+    "name": "mino",
+    "email": ""
+  },
+  "info": {
+    "productName": "mino",
+    "productVersion": "1.0.0",
+    "copyright": "Copyright 2026 mino Proxy",
+    "comments": "mino Proxy - macOS Proxy Client"
+  }
+}
