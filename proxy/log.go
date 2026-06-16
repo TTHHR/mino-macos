@@ -22,10 +22,21 @@ type Logger struct {
 var (
 	defaultLogger *Logger
 	logOnce       sync.Once
+	logPath       string
 )
 
+// SetLogPath sets the log file path for the default proxy logger.
+// Must be called before the first call to Log().
+func SetLogPath(path string) {
+	logPath = path
+}
+
 func initLogger() {
-	defaultLogger = NewLogger("minomac_proxy.log")
+	lp := logPath
+	if lp == "" {
+		lp = "minomac_proxy.log"
+	}
+	defaultLogger = NewLogger(lp)
 }
 
 // NewLogger creates a new proxy logger writing to both file and stderr.

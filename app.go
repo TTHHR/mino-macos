@@ -4,10 +4,12 @@ import (
 	"context"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 
 	"minoMac_wails/model"
+	"minoMac_wails/proxy"
 	"minoMac_wails/storage"
 )
 
@@ -31,7 +33,18 @@ func NewApp() *App {
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 
-	st, err := storage.NewFileStorage("minomac_data.enc", storage.DefaultPassphrase)
+	// Use macOS Application Support directory so files work both in
+	// development and when installed from DMG.
+	dataDir, err := appDataDir()
+	if err != nil {
+		log.Printf("app data dir error, falling back to cwd: %v", err)
+		dataDir = "."
+	}
+
+	// Set proxy log path before any proxy code runs
+	proxy.SetLogPath(filepath.Join(dataDir, "minomac_proxy.log"))
+
+	st, err := storage.NewFileStorage(filepath.Join(dataDir, "minomac_data.enc"), storage.DefaultPassphrase)
 	if err != nil {
 		log.Printf("storage init error: %v", err)
 	}
@@ -39,7 +52,7 @@ func (a *App) startup(ctx context.Context) {
 	a.urlModel = model.NewURLModel(st)
 
 	// Use encrypted config storage instead of plaintext JSON
-	cfgStorage := model.NewEncryptedJSONConfigStorage("minomac_config.enc", storage.DefaultPassphrase)
+	cfgStorage := model.NewEncryptedJSONConfigStorage(filepath.Join(dataDir, "minomac_config.enc"), storage.DefaultPassphrase)
 
 	a.proxyManager = model.NewProxyManager(cfgStorage)
 	if err := a.proxyManager.Init(); err != nil {
@@ -224,4 +237,19 @@ func maskURL(rawURL string) string {
 func (a *App) QuitApp() {
 	_ = a.proxyManager.Stop()
 	os.Exit(0)
+}
+
+// appDataDir returns the path to ~/Library/Application Support/mino/,
+// creating it if necessary. This ensures config/data/log files always
+// land in a writable location regardless of the process working directory.
+func appDataDir() (string, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	dir := filepath.Join(homeDir, "Library", "Application Support", "mino")
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return "", err
+	}
+	return dir, nil
 }
